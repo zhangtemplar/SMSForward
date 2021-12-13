@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
     private String receiverEmail = null;
     // is it active?
     private boolean active = false;
-    private SmsManager smsManager = SmsManager.getDefault();
+    private final SmsManager smsManager = SmsManager.getDefault();
 
     // UI related
     EditText phoneInput;
@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case PERMISSION_REQUEST_RECEIVE_SMS:
-                Log.i(TAG, "Permission for receving SMS is granted");
+                Log.i(TAG, "Permission for receiving SMS is granted");
                 break;
             case PERMISSION_REQUEST_READ_SMS:
                 Log.i(TAG, "Permission for reading SMS is granted");
