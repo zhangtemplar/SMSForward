@@ -1,63 +1,72 @@
 package org.zhqiang.smsforward;
 
 import static android.provider.Telephony.Sms.Intents.getMessagesFromIntent;
+import static org.zhqiang.smsforward.Constants.ACTION_SETTINGS;
+import static org.zhqiang.smsforward.Constants.KEY_GMAIL_ACCOUNT;
+import static org.zhqiang.smsforward.Constants.KEY_GMAIL_PASSWORD;
+import static org.zhqiang.smsforward.Constants.START_ACTIVITY_SETTINGS;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Bundle;
 import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
-public class MainActivity extends AppCompatActivity implements View.OnFocusChangeListener {
-    private static final String ACTION = "android.provider.Telephony.SMS_RECEIVED";
-    private static final String TAG = "MainActivity";
-    private static final String KEY_RECEIVER_PHONE = "receiver_phone";
-    private static final String KEY_RECEIVER_EMAIL = "receiver_email";
-    private static final String KEY_ACTIVE = "active";
+import java.util.concurrent.Executors;
 
-    private static final int PERMISSION_REQUEST_RECEIVE_SMS = 0;
-    private static final int PERMISSION_REQUEST_READ_SMS = 1;
-    private static final int PERMISSION_REQUEST_SEND_SMS = 2;
-    private static final int PERMISSION_REQUEST_INTERNET = 3;
+public class MainActivity extends AppCompatActivity implements View.OnFocusChangeListener {
+    private static final String TAG = "MainActivity";
+
     private final SmsManager smsManager = SmsManager.getDefault();
-    // UI related
-    EditText phoneInput;
-    EditText emailInput;
+    @SuppressLint("UseSwitchCompatOrMaterialCode")
     Switch activeSwitch;
+    // UI related
+    private EditText phoneInput;
+    private EditText emailInput;
+    private Button buttonSettings;
     // phone number to forward sms
     private String receiverPhone = null;
     // email address to forward sms
     private String receiverEmail = null;
+    private String gmailAccount = null;
+    private String gmailPassword = null;
     // is it active?
     private boolean active = false;
+    private GMailSender gMailSender;
 
     private void loadSettings() {
         Log.i(TAG, "Loading setting");
         SharedPreferences preference = getPreferences(Context.MODE_PRIVATE);
-        receiverPhone = preference.getString(KEY_RECEIVER_PHONE, receiverPhone);
-        receiverEmail = preference.getString(KEY_RECEIVER_EMAIL, receiverEmail);
-        active = preference.getBoolean(KEY_ACTIVE, active);
+        receiverPhone = preference.getString(Constants.KEY_RECEIVER_PHONE, receiverPhone);
+        receiverEmail = preference.getString(Constants.KEY_RECEIVER_EMAIL, receiverEmail);
+        gmailAccount = preference.getString(Constants.KEY_GMAIL_ACCOUNT, gmailAccount);
+        gmailPassword = preference.getString(Constants.KEY_GMAIL_PASSWORD, gmailPassword);
+        active = preference.getBoolean(Constants.KEY_ACTIVE, active);
         Log.i(TAG, String.format("Loaded setting %s %s %b", receiverPhone, receiverEmail, active));
     }
 
     private void saveSettings() {
         SharedPreferences preference = getPreferences(Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = preference.edit();
-        editor.putString(KEY_RECEIVER_PHONE, receiverPhone);
-        editor.putString(KEY_RECEIVER_EMAIL, receiverEmail);
-        editor.putBoolean(KEY_ACTIVE, active);
+        editor.putString(Constants.KEY_RECEIVER_PHONE, receiverPhone);
+        editor.putString(Constants.KEY_RECEIVER_EMAIL, receiverEmail);
+        editor.putString(Constants.KEY_GMAIL_ACCOUNT, gmailAccount);
+        editor.putString(Constants.KEY_GMAIL_PASSWORD, gmailPassword);
+        editor.putBoolean(Constants.KEY_ACTIVE, active);
         editor.apply();
         Log.i(TAG, "Saved setting");
     }
@@ -69,29 +78,50 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
     }
 
     private void checkPermission() {
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECEIVE_SMS}, PERMISSION_REQUEST_RECEIVE_SMS);
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_SMS}, PERMISSION_REQUEST_READ_SMS);
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, PERMISSION_REQUEST_SEND_SMS);
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, PERMISSION_REQUEST_INTERNET);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECEIVE_SMS}, Constants.PERMISSION_REQUEST_RECEIVE_SMS);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_SMS}, Constants.PERMISSION_REQUEST_READ_SMS);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, Constants.PERMISSION_REQUEST_SEND_SMS);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, Constants.PERMISSION_REQUEST_INTERNET);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
-            case PERMISSION_REQUEST_RECEIVE_SMS:
+            case Constants.PERMISSION_REQUEST_RECEIVE_SMS:
                 Log.i(TAG, "Permission for receiving SMS is granted");
                 break;
-            case PERMISSION_REQUEST_READ_SMS:
+            case Constants.PERMISSION_REQUEST_READ_SMS:
                 Log.i(TAG, "Permission for reading SMS is granted");
                 break;
-            case PERMISSION_REQUEST_SEND_SMS:
+            case Constants.PERMISSION_REQUEST_SEND_SMS:
                 Log.i(TAG, "Permission for sending SMS is granted");
                 break;
             default:
                 Log.e(TAG, "Unknown permission");
                 break;
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != START_ACTIVITY_SETTINGS) {
+            Log.i(TAG, "result from unknown activity");
+            return;
+        }
+        if (resultCode != RESULT_OK) {
+            Log.i(TAG, "result with bad code");
+            return;
+        }
+        if (data == null) {
+            Log.e(TAG, "intent is empty, unexpected");
+            return;
+        }
+        gmailAccount = data.getStringExtra(KEY_GMAIL_ACCOUNT);
+        gmailPassword = data.getStringExtra(KEY_GMAIL_PASSWORD);
+        gMailSender = new GMailSender(gmailAccount, gmailPassword);
+        Log.i(TAG, "update GMailSender");
     }
 
     @Override
@@ -115,12 +145,26 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
                 }
             }
         });
+        buttonSettings = findViewById(R.id.buttonSetting);
+        buttonSettings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intentSettings = new Intent(ACTION_SETTINGS, null, getApplicationContext(), GMailSettingActivity.class);
+                //noinspection deprecation
+                startActivityForResult(intentSettings, START_ACTIVITY_SETTINGS);
+            }
+        });
         loadSettings();
         if (receiverPhone != null) {
             phoneInput.setText(receiverPhone);
         }
         if (receiverEmail != null) {
             emailInput.setText(receiverEmail);
+        }
+        if (gmailAccount != null || gmailPassword != null) {
+            gMailSender = new GMailSender(gmailAccount, gmailPassword);
+        } else {
+            Log.w(TAG, "email forwarding disabled, please configure email settings first");
         }
         activeSwitch.setChecked(active);
         onNewIntent(getIntent());
@@ -136,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
         if (action == null) {
             return;
         }
-        if (!ACTION.equals(action)) {
+        if (!Constants.ACTION.equals(action)) {
             return;
         }
         Log.i(TAG, "Starting due to receiving a new message");
@@ -165,23 +209,23 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
         if (receiverEmail == null) {
             return false;
         }
-        Intent emailIntent = new Intent(Intent.ACTION_SENDTO);
-        emailIntent.setDataAndType(Uri.parse("mailto:"), "text/plain");
-        emailIntent.putExtra(Intent.EXTRA_EMAIL, new String[]{receiverEmail});
-        emailIntent.putExtra(Intent.EXTRA_TEXT, message.getMessageBody());
-        emailIntent.putExtra(Intent.EXTRA_SUBJECT, String.format("forward from:%s", message.getOriginatingAddress()));
-        try {
-            if (emailIntent.resolveActivity(getPackageManager()) != null) {
-                startActivity(emailIntent);
-                Log.i(TAG, String.format("Message forwarded to %s", receiverEmail));
-            } else {
-                Log.e(TAG, "No email client is available");
-            }
-        } catch (android.content.ActivityNotFoundException e) {
-            String errorMessage = String.format("Failed to forward message to %s", receiverEmail);
-            Log.e(TAG, errorMessage, e);
+        if (gMailSender == null) {
             return false;
         }
+        Executors.newSingleThreadExecutor().execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    gMailSender.sendMail(
+                            message.getOriginatingAddress(),
+                            message.getMessageBody(),
+                            String.format("%s@gmail.com", gmailAccount),
+                            receiverEmail);
+                } catch (Exception e) {
+                    Log.e(TAG, String.format("failed to forward email to %s", receiverEmail), e);
+                }
+            }
+        });
         return true;
     }
 

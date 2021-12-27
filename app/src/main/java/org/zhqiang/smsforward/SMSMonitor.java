@@ -10,7 +10,6 @@ import android.util.Log;
 
 
 public class SMSMonitor extends BroadcastReceiver {
-    private static final String ACTION = "android.provider.Telephony.SMS_RECEIVED";
     private static final String TAG = "SMSMonitor";
 
     @Override
@@ -22,7 +21,7 @@ public class SMSMonitor extends BroadcastReceiver {
         if (action == null) {
             return;
         }
-        if (!ACTION.equals(action)) {
+        if (!Constants.ACTION.equals(action)) {
             return;
         }
         // Start the activity
