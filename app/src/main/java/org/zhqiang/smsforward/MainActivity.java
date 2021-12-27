@@ -2,16 +2,11 @@ package org.zhqiang.smsforward;
 
 import static android.provider.Telephony.Sms.Intents.getMessagesFromIntent;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
@@ -21,8 +16,9 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 public class MainActivity extends AppCompatActivity implements View.OnFocusChangeListener {
     private static final String ACTION = "android.provider.Telephony.SMS_RECEIVED";
@@ -35,19 +31,17 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
     private static final int PERMISSION_REQUEST_READ_SMS = 1;
     private static final int PERMISSION_REQUEST_SEND_SMS = 2;
     private static final int PERMISSION_REQUEST_INTERNET = 3;
-
+    private final SmsManager smsManager = SmsManager.getDefault();
+    // UI related
+    EditText phoneInput;
+    EditText emailInput;
+    Switch activeSwitch;
     // phone number to forward sms
     private String receiverPhone = null;
     // email address to forward sms
     private String receiverEmail = null;
     // is it active?
     private boolean active = false;
-    private final SmsManager smsManager = SmsManager.getDefault();
-
-    // UI related
-    EditText phoneInput;
-    EditText emailInput;
-    Switch activeSwitch;
 
     private void loadSettings() {
         Log.i(TAG, "Loading setting");
@@ -111,16 +105,16 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
         emailInput.setOnFocusChangeListener(this);
         activeSwitch = findViewById(R.id.switch1);
         activeSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                                                    @Override
-                                                    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                                                        active = compoundButton.isChecked();
-                                                        if (active) {
-                                                            Log.i(TAG, "Enabled");
-                                                        } else {
-                                                            Log.i(TAG, "Disabled");
-                                                        }
-                                                    }
-                                                });
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                active = compoundButton.isChecked();
+                if (active) {
+                    Log.i(TAG, "Enabled");
+                } else {
+                    Log.i(TAG, "Disabled");
+                }
+            }
+        });
         loadSettings();
         if (receiverPhone != null) {
             phoneInput.setText(receiverPhone);
@@ -152,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
             return;
         }
         SmsMessage[] messages = getMessagesFromIntent(intent);
-        for (SmsMessage message: messages) {
+        for (SmsMessage message : messages) {
             forwardMessage(message);
         }
     }
@@ -202,7 +196,7 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
 
     @Override
     public void onFocusChange(View view, boolean b) {
-        switch(view.getId()) {
+        switch (view.getId()) {
             case R.id.editTextPhone:
                 receiverPhone = phoneInput.getText().toString();
                 Log.i(TAG, String.format("Set phone number %s", receiverPhone));

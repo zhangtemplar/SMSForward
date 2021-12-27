@@ -19,15 +19,16 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 public class GMailSender extends javax.mail.Authenticator {
-    private String mailhost = "smtp.gmail.com";
-    private String user;
-    private String password;
-    private Session session;
     private static String TAG = "GMailSender";
 
     static {
         Security.addProvider(new JSSEProvider());
     }
+
+    private String mailhost = "smtp.gmail.com";
+    private String user;
+    private String password;
+    private Session session;
 
     public GMailSender(String user, String password) {
         this.user = user;
@@ -52,7 +53,7 @@ public class GMailSender extends javax.mail.Authenticator {
     }
 
     public synchronized void sendMail(String subject, String body, String sender, String recipients) throws Exception {
-        try{
+        try {
             MimeMessage message = new MimeMessage(session);
             DataHandler handler = new DataHandler(new ByteArrayDataSource(body.getBytes(), "text/plain"));
             message.setSender(new InternetAddress(sender));
@@ -64,7 +65,7 @@ public class GMailSender extends javax.mail.Authenticator {
                 message.setRecipient(Message.RecipientType.TO, new InternetAddress(recipients));
             Transport.send(message);
             Log.d(TAG, String.format("email %s sent to %s", subject, recipients));
-        } catch (Exception e){
+        } catch (Exception e) {
             Log.e(TAG, String.format("failed to send email %s to %s", subject, recipients), e);
         }
     }
