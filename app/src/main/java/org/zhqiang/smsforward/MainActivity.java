@@ -155,7 +155,8 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
         if (receiverPhone == null) {
             return false;
         }
-        smsManager.sendTextMessage(receiverPhone, null, message.getMessageBody(), null, null);
+        String body = String.format("%s:%s", message.getOriginatingAddress(), message.getMessageBody());
+        smsManager.sendTextMessage(receiverPhone, null, body, null, null);
         Log.i(TAG, String.format("Message forwarded to %s", receiverPhone));
         return true;
     }
@@ -170,8 +171,12 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
         emailIntent.putExtra(Intent.EXTRA_TEXT, message.getMessageBody());
         emailIntent.putExtra(Intent.EXTRA_SUBJECT, String.format("forward from:%s", message.getOriginatingAddress()));
         try {
-            startActivity(emailIntent);
-            Log.i(TAG, String.format("Message forwarded to %s", receiverEmail));
+            if (emailIntent.resolveActivity(getPackageManager()) != null) {
+                startActivity(emailIntent);
+                Log.i(TAG, String.format("Message forwarded to %s", receiverEmail));
+            } else {
+                Log.e(TAG, "No email client is available");
+            }
         } catch (android.content.ActivityNotFoundException e) {
             String errorMessage = String.format("Failed to forward message to %s", receiverEmail);
             Log.e(TAG, errorMessage, e);
