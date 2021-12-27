@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
@@ -19,6 +20,9 @@ import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
+
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity implements View.OnFocusChangeListener {
     private static final String ACTION = "android.provider.Telephony.SMS_RECEIVED";
@@ -30,6 +34,7 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
     private static final int PERMISSION_REQUEST_RECEIVE_SMS = 0;
     private static final int PERMISSION_REQUEST_READ_SMS = 1;
     private static final int PERMISSION_REQUEST_SEND_SMS = 2;
+    private static final int PERMISSION_REQUEST_INTERNET = 3;
 
     // phone number to forward sms
     private String receiverPhone = null;
@@ -73,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements View.OnFocusChang
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECEIVE_SMS}, PERMISSION_REQUEST_RECEIVE_SMS);
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_SMS}, PERMISSION_REQUEST_READ_SMS);
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, PERMISSION_REQUEST_SEND_SMS);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, PERMISSION_REQUEST_INTERNET);
     }
 
     @Override

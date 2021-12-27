@@ -1,5 +1,7 @@
 package org.zhqiang.smsforward;
 
+import android.util.Log;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +23,7 @@ public class GMailSender extends javax.mail.Authenticator {
     private String user;
     private String password;
     private Session session;
+    private static String TAG = "GMailSender";
 
     static {
         Security.addProvider(new JSSEProvider());
@@ -60,8 +63,9 @@ public class GMailSender extends javax.mail.Authenticator {
             else
                 message.setRecipient(Message.RecipientType.TO, new InternetAddress(recipients));
             Transport.send(message);
-        }catch(Exception e){
-
+            Log.d(TAG, String.format("email %s sent to %s", subject, recipients));
+        } catch (Exception e){
+            Log.e(TAG, String.format("failed to send email %s to %s", subject, recipients), e);
         }
     }
 

@@ -14,8 +14,14 @@ It is supposed to work on most of the Android phones.
 
 # Permission
 
-It will require the permissions of receving, reading and sending SMS.
+It will require the permissions of receiving, reading and sending SMS.
 
 # Privacy
 
 It only forwards your SMS to your selected phone number and/or email address. I will never receive your SMS.
+
+# FAQ
+
+## AuthenticationFailedException for sending emails
+
+If you have enabled 2-factor authentication of your GMail account, you cannot use your gmail password here, but use [app password](https://support.google.com/accounts/answer/185833?hl=en) instead.
